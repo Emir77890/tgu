@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <title>Регистрация</title>
+  <style>
+    body { font-family: Arial, sans-serif; background: #f3f3f3; text-align: center; }
+    .form-box { margin: 100px auto; padding: 20px; width: 300px; background: #fff; border-radius: 10px; box-shadow: 0 0 10px #aaa; }
+    input { display: block; margin: 10px auto; padding: 8px; width: 90%; }
+    button { padding: 10px 20px; background: #333; color: #fff; border: none; border-radius: 5px; cursor: pointer; }
+  </style>
+</head>
+<body>
+  <div class="form-box">
+    <h2>Регистрация</h2>
+    <input type="text" id="username" placeholder="Логин">
+    <input type="password" id="password" placeholder="Пароль">
+    <button onclick="register()">Зарегистрироваться</button>
+  </div>
+
+  <script>
+    function register() {
+      const username = document.getElementById("username").value;
+      const password = document.getElementById("password").value;
+
+      if (!username || !password) {
+        alert("Заполните все поля!");
+        return;
+      }
+
+      // сохраняем пользователя в localStorage
+      let users = JSON.parse(localStorage.getItem("users")) || [];
+      users.push({ username, password });
+      localStorage.setItem("users", JSON.stringify(users));
+
+      alert("Регистрация успешна!");
+        localStorage.setItem("currentUser", username);
+    window.location.href = "login.html";
+      // Проверка администратора
+    if (username === "admin" && password === "1234") {
+      localStorage.setItem("currentUser", "Админ");
+      alert("Добро пожаловать, админ!");
+      window.location.href = "admin.html";
+      return;
+    }
+     
+    }
+  </script>
+  <script>
+  function login() {
+    const username = document.getElementById("username").value.trim();
+    const password = document.getElementById("password").value.trim();
+
+    if (!username || !password) {
+      alert("Заполните все поля!");
+      return;
+    }
+
+  
+
+    // Проверка/регистрация игрока
+    let users = JSON.parse(localStorage.getItem("users")) || [];
+    let user = users.find(u => u.username === username && u.password === password);
+
+    if (!user) {
+      users.push({ username, password, lastActive: Date.now() });
+      localStorage.setItem("users", JSON.stringify(users));
+      alert("Регистрация успешна!");
+    } else {
+      user.lastActive = Date.now(); // обновляем активность
+      localStorage.setItem("users", JSON.stringify(users));
+      alert("Вход выполнен!");
+    }
+
+  
+  }
+</script>
+</body>
+</html>
