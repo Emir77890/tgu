@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <title>Админ-панель</title>
+  <script src="/socket.io/socket.io.js"></script>
+</head>
+<body>
+  <h2>Админ-панель</h2>
+  <h3>Игроки:</h3>
+  <ul id="users"></ul>
+
+  <h3>Чат:</h3>
+  <div id="chat"></div>
+  <input type="text" id="msg" placeholder="Ответить...">
+  <button onclick="sendMessage()">Отправить</button>
+
+  <script>
+    const socket = io();
+
+    // Загружаем список пользователей
+    fetch("/users")
+      .then(res => res.json())
+      .then(data => {
+        const ul = document.getElementById("users");
+        data.forEach(u => {
+          const li = document.createElement("li");
+          li.textContent = u.username;
+          ul.appendChild(li);
+        });
+      });
+
+    socket.on("newMessage", (data) => {
+      const div = document.createElement("div");
+      div.textContent = data.username + ": " + data.text;
+      document.getElementById("chat").appendChild(div);
+    });
+
+    function sendMessage() {
+      const msg = document.getElementById("msg").value;
+      socket.emit("sendMessage", { username: "Админ", text: msg });
+      document.getElementById("msg").value = "";
+    }
+  </script>
+  <script>
+  // Загружаем игроков
+  let users = JSON.parse(localStorage.getItem("users")) || [];
+  let userList = document.getElementById("userList");
+
+  function renderUsers() {
+    userList.innerHTML = "";
+    const now = Date.now();
+
+    users.forEach(u => {
+      let li = document.createElement("li");
+
+      // Определяем статус
+      let status = (now - (u.lastActive || 0) < 60000) ? "🟢 Онлайн" : "⚪ Был(а): " + new Date(u.lastActive || 0).toLocaleString();
+
+      li.textContent = ${u.username} — ${status};
+      userList.appendChild(li);
+    });
+  }
+
+  renderUsers();
+</script>
+  <style>
+    body { font-family: Arial, sans-serif; background: #eef2f3; margin: 20px; }
+    h2 { text-align: center; }
+    #messages { border: 1px solid #ccc; padding: 10px; height: 400px; overflow-y: auto; margin-bottom: 10px; background: #fff; border-radius: 10px; }
+    .msg { margin: 5px 0; padding: 5px; border-bottom: 1px solid #eee; }
+    .admin { color: blue; font-weight: bold; }
+    .player { color: green; }
+    input, button { padding: 10px; }
+    button { background: #333; color: #fff; border: none; border-radius: 5px; cursor: pointer; }
+  </style>
+</head>
+<body>
+  <h2>Чат с игроками</h2>
+  <div id="messages"></div>
+  <div>
+    <input type="text" id="msgInput" placeholder="Введите сообщение админа...">
+    <button onclick="sendAdminMessage()">Отправить</button>
+  </div>
+
+  <script>
+    let messages = JSON.parse(localStorage.getItem("messages")) || [];
+    let msgBox = document.getElementById("messages");
+    let adminName = "Админ";
+
+    function renderMessages() {
+      msgBox.innerHTML = "";
+      messages.forEach(m => {
+        let div = document.createElement("div");
+        div.className = "msg " + (m.username === adminName ? "admin" : "player");
+        div.textContent = m.username + ": " + m.text;
+        msgBox.appendChild(div);
+      });
+      msgBox.scrollTop = msgBox.scrollHeight; // автопрокрутка вниз
+    }
+    renderMessages();
+
+    function sendAdminMessage() {
+      let input = document.getElementById("msgInput");
+      if (!input.value) return;
+
+      let msg = { username: adminName, text: input.value, time: Date.now() };
+      messages.push(msg);
+      localStorage.setItem("messages", JSON.stringify(messages));
+
+      input.value = "";
+      renderMessages();
+    }
+
+    // автообновление чата каждые 2 секунды
+    setInterval(() => {
+      messages = JSON.parse(localStorage.getItem("messages")) || [];
+      renderMessages();
+    }, 2000);
+  </script>
+</body>
+</html>

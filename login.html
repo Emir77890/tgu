@@ -1,0 +1,371 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <title>Главное меню</title>
+  <style>
+    body { font-family: Arial, sans-serif; margin: 0; background: #f4f4f4; }
+    header { background: #222; color: #fff; padding: 10px; display: flex; justify-content: space-around; }
+    header button { background: #444; color: white; border: none; padding: 10px 15px; cursor: pointer; border-radius: 5px; }
+    header button:hover { background: #666; }
+    .section { display: none; padding: 20px; }
+    .active { display: block; }
+    #chatBox { border: 1px solid #ccc; height: 300px; overflow-y: auto; padding: 10px; background: #fff; }
+    #chatInput { width: 80%; padding: 8px; }
+    #sendBtn { padding: 8px 15px; }
+    .message { margin: 5px 0; padding: 5px 10px; background: #eee; border-radius: 5px; }
+    #profile img { width: 100px; border-radius: 50%; margin-bottom: 10px; display: block; }
+    #shopItems { margin-top: 10px; }
+    .item { border: 1px solid #aaa; padding: 10px; margin: 5px 0; background: #fff; }
+    .buyBtn { background: green; color: white; border: none; padding: 5px 10px; margin-top: 5px; cursor: pointer; border-radius: 5px; }
+    .buyBtn:hover { background: darkgreen; }
+  </style>
+</head>
+<body>
+
+<header>
+  <button onclick="showSection('chat')">Чат</button>
+  <button onclick="showSection('profile')">Профиль</button>
+  <button onclick="showSection('shop')">Магазин</button>
+  <a href="register.htm">
+    <button>Найти друга</button>
+  </a>
+  <!-- Чат с админом -->
+<div id="admin-chat" style="display:none; border:1px solid #ccc; padding:10px; margin-top:20px;">
+  <h3>Чат с администратором</h3>
+  <div id="admin-messages" style="height:200px; overflow-y:auto; border:1px solid #999; margin-bottom:10px;"></div>
+  <input type="text" id="admin-input" placeholder="Напиши админу...">
+  <button id="admin-send">Отправить</button>
+</div>
+</header>
+
+<section>
+    
+</section>
+
+<!-- Чат -->
+<div id="chat" class="section active">
+  <h2>Чат</h2>
+  <div id="chatBox"></div>
+  <input type="text" id="chatInput" placeholder="Напиши сообщение...">
+  <button id="sendBtn">Отправить</button>
+</div>
+
+
+<!-- Профиль -->
+<div id="profile" class="section">
+  <h2>Мой профиль</h2>
+  <img id="avatar" src="https://via.placeholder.com/100" alt="Аватар">
+  <input type="file" id="avatarInput" accept="image/*" onchange="setAvatar(event)">
+  <p><b>Никнейм:</b> <span id="nickname">Игрок</span></p>
+  <p><b>Возраст:</b> <span id="age">Не указан</span></p>
+  <input type="text" id="ageInput" placeholder="Укажи возраст">
+  <button onclick="saveAge()">Сохранить возраст</button>
+  <p><b>Баланс:</b> <span id="balance">1000</span> монет</p>
+</div>
+
+<!-- Магазин -->
+<div id="shop" class="section">
+  <h2>Магазин</h2>
+  <input type="text" id="itemName" placeholder="Что продаешь?">
+  <input type="number" id="itemPrice" placeholder="Цена">
+  <button onclick="addItem()">Опубликовать</button>
+  <div id="shopItems"></div>
+</div>
+
+<script>
+  let balance = parseInt(localStorage.getItem("balance")) || 1000;
+
+  // Переключение секций
+  function showSection(id) {
+    document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+    document.getElementById(id).classList.add('active');
+  }
+
+  // ===== Чат =====
+  function renderChat() {
+    let chatBox = document.getElementById('chatBox');
+    chatBox.innerHTML = "";
+    let messages = JSON.parse(localStorage.getItem("chatMessages")) || [];
+    messages.forEach(msg => {
+      let div = document.createElement('div');
+      div.className = "message";
+      div.innerText = msg;
+      chatBox.appendChild(div);
+    });
+    chatBox.scrollTop = chatBox.scrollHeight;
+  }
+
+  document.getElementById('sendBtn').onclick = function() {
+    let input = document.getElementById('chatInput');
+    let msg = input.value.trim();
+    if (msg !== "") {
+      let messages = JSON.parse(localStorage.getItem("chatMessages")) || [];
+      messages.push("Ты: " + msg);
+      localStorage.setItem("chatMessages", JSON.stringify(messages));
+      renderChat();
+      input.value = "";
+    }
+  }
+
+  // ===== Профиль =====
+  function saveAge() {
+    let age = document.getElementById('ageInput').value;
+    if (age) {
+      document.getElementById('age').innerText = age;
+      localStorage.setItem("age", age);
+      document.getElementById('ageInput').value = "";
+    }
+  }
+
+  function setAvatar(event) {
+    let reader = new FileReader();
+    reader.onload = function(e) {
+      document.getElementById('avatar').src = e.target.result;
+      localStorage.setItem("avatar", e.target.result);
+    }
+    reader.readAsDataURL(event.target.files[0]);
+  }
+
+  // ===== Магазин =====
+  function addItem() {
+    let name = document.getElementById('itemName').value;
+    let price = document.getElementById('itemPrice').value;
+    if (name && price) {
+      let items = JSON.parse(localStorage.getItem("shopItems")) || [];
+      items.push({name, price});
+      localStorage.setItem("shopItems", JSON.stringify(items));
+      renderShop();
+      document.getElementById('itemName').value = "";
+      document.getElementById('itemPrice').value = "";
+    }
+  }
+
+  function buyItem(price, btn) {
+    if (balance >= price) {
+      balance -= price;
+      localStorage.setItem("balance", balance);
+      document.getElementById('balance').innerText = balance;
+      btn.innerText = "✅ Куплено";
+      btn.disabled = true;
+    } else {
+      alert("Недостаточно монет!");
+    }
+  }
+
+  function renderShop() {
+    let shopBox = document.getElementById('shopItems');
+    shopBox.innerHTML = "";
+    let items = JSON.parse(localStorage.getItem("shopItems")) || [];
+    items.forEach(item => {
+      let div = document.createElement('div');
+      div.className = "item";
+      div.innerHTML = "📢 Игрок продает: <b>" + item.name + "</b> за <b>" + item.price + "</b> монет" +
+                      "<br><button class='buyBtn' onclick='buyItem(" + item.price + ", this)'>Купить</button>";
+      shopBox.appendChild(div);
+    });
+  }
+
+  // ===== Загружаем при старте =====
+  window.onload = function() {
+    if (localStorage.getItem("avatar")) {
+      document.getElementById('avatar').src = localStorage.getItem("avatar");
+    }
+    if (localStorage.getItem("age")) {
+      document.getElementById('age').innerText = localStorage.getItem("age");
+    }
+    if (localStorage.getItem("balance")) {
+      document.getElementById('balance').innerText = localStorage.getItem("balance");
+      balance = parseInt(localStorage.getItem("balance"));
+    }
+    renderShop();
+    renderChat();
+  }
+</script>
+<script>
+  
+  // ===== ЗВОНОК =====
+  const phoneInput = document.getElementById("phone");
+  const savePhoneBtn = document.getElementById("savePhone");
+  const savedNumber = document.getElementById("savedNumber");
+
+  if (localStorage.getItem("phoneNumber")) {
+    const number = localStorage.getItem("phoneNumber");
+    savedNumber.textContent = "Твой номер: " + number;
+    phoneInput.value = number;
+    addMessage("Мой сохранённый номер: " + number);
+  }
+
+  savePhoneBtn.addEventListener("click", () => {
+    const number = phoneInput.value.trim();
+    if (number) {
+      localStorage.setItem("phoneNumber", number);
+      savedNumber.textContent = "Твой номер: " + number;
+      addMessage("Мой сохранённый номер: " + number);
+      alert("📌 Номер сохранён!");
+    }
+  });
+</script>
+
+  <style>
+    body { font-family: Arial, sans-serif; background: #f4f4f4; margin: 0; padding: 20px; }
+    #chat-box { border: 1px solid #ccc; background: white; height: 300px; padding: 10px; overflow-y: auto; margin-bottom: 10px; }
+    #message-input { width: 70%; padding: 10px; }
+    #send-btn { padding: 10px; }
+    #phone-box, #register-box, #profile-box { margin-top: 20px; padding: 15px; background: white; border: 1px solid #ccc; }
+    input { padding: 8px; margin: 5px 0; width: 200px; }
+    button { padding: 8px 12px; }
+    #status { margin-top: 10px; font-weight: bold; }
+  </style>
+</head>
+<body>
+
+  
+
+
+
+  <!-- Профиль -->
+  <div id="profile-box" style="display:none;">
+    <h3>Профиль</h3>
+    <p><b>Ник:</b> <span id="prof-nick"></span></p>
+    <p><b>Телефон:</b> <span id="prof-phone"></span></p>
+    <button id="logout-btn">Выйти</button>
+  </div>
+
+  
+
+
+
+  <script>
+    const chatBox = document.getElementById("chat-box");
+    const messageInput = document.getElementById("message-input");
+    const sendBtn = document.getElementById("send-btn");
+    const phoneInput = document.getElementById("phone-input");
+    const connectBtn = document.getElementById("connect-btn");
+    const status = document.getElementById("status");
+
+    const regBox = document.getElementById("register-box");
+    const profBox = document.getElementById("profile-box");
+    const regBtn = document.getElementById("reg-btn");
+    const logoutBtn = document.getElementById("logout-btn");
+
+    const profNick = document.getElementById("prof-nick");
+    const profPhone = document.getElementById("prof-phone");
+
+    let currentChatNumber = null;
+    let currentUser = null;
+
+    // Загружаем пользователя, если он уже зарегистрирован
+    if(localStorage.getItem("user")) {
+      currentUser = JSON.parse(localStorage.getItem("user"));
+      showProfile();
+    }
+
+    function showProfile() {
+      regBox.style.display = "none";
+      profBox.style.display = "block";
+      profNick.textContent = currentUser.nick;
+      profPhone.textContent = currentUser.phone;
+    }
+
+    function addMessage(sender, text) {
+      chatBox.innerHTML += <p><b>${sender}:</b> ${text}</p>;
+      chatBox.scrollTop = chatBox.scrollHeight;
+    }
+
+   
+
+    // Выход
+    logoutBtn.addEventListener("click", () => {
+      localStorage.removeItem("user");
+      currentUser = null;
+      regBox.style.display = "block";
+      profBox.style.display = "none";
+    });
+
+   
+
+  </script>
+
+<script>
+  // ===== Чат с админом =====
+  const adminChat = document.getElementById("admin-chat");
+  const adminMessages = document.getElementById("admin-messages");
+  const adminInput = document.getElementById("admin-input");
+  const adminSend = document.getElementById("admin-send");
+
+  // Для примера — включим чат с админом сразу после регистрации
+  function openAdminChat(username) {
+    adminChat.style.display = "block";
+    addAdminMessage("Админ: Привет, " + username + "! Чем могу помочь?");
+  }
+
+  function addAdminMessage(text) {
+    adminMessages.innerHTML += <p>${text}</p>;
+    adminMessages.scrollTop = adminMessages.scrollHeight;
+  }
+
+  adminSend.addEventListener("click", () => {
+    const msg = adminInput.value.trim();
+    if (msg !== "") {
+      addAdminMessage("Ты: " + msg);
+      adminInput.value = "";
+      // Здесь админ может видеть все ники (в реальном сервере!)
+    }
+  });
+</script>
+
+  <style>
+    body { font-family: Arial, sans-serif; background: #f3f3f3; margin: 20px; }
+    h2 { text-align: center; }
+    #messages { border: 1px solid #ccc; padding: 10px; height: 300px; overflow-y: auto; margin-bottom: 10px; background: #fff; border-radius: 10px; }
+    .msg { margin: 5px 0; padding: 5px; border-bottom: 1px solid #eee; }
+    input, button { padding: 10px; }
+    button { background: #333; color: #fff; border: none; border-radius: 5px; cursor: pointer; }
+  </style>
+</head>
+<body>
+  <h2>Чат с админом</h2>
+  <div id="messages"></div>
+  <div>
+    <input type="text" id="msgInput" placeholder="Введите сообщение...">
+    <button onclick="sendMessage()">Отправить</button>
+  </div>
+
+  <script>
+    let messages = JSON.parse(localStorage.getItem("messages")) || [];
+    let msgBox = document.getElementById("messages");
+    let currentUser = localStorage.getItem("currentUser") || "Игрок";
+
+    function renderMessages() {
+      msgBox.innerHTML = "";
+      messages.forEach(m => {
+        let div = document.createElement("div");
+        div.className = "msg";
+        div.textContent = m.username + ": " + m.text;
+        msgBox.appendChild(div);
+      });
+      msgBox.scrollTop = msgBox.scrollHeight; // автопрокрутка вниз
+    }
+    renderMessages();
+
+    function sendMessage() {
+      let input = document.getElementById("msgInput");
+      if (!input.value) return;
+
+      let msg = { username: currentUser, text: input.value, time: Date.now() };
+      messages.push(msg);
+      localStorage.setItem("messages", JSON.stringify(messages));
+
+      input.value = "";
+      renderMessages();
+    }
+
+    // автообновление чата каждые 2 секунды
+    setInterval(() => {
+      messages = JSON.parse(localStorage.getItem("messages")) || [];
+      renderMessages();
+    }, 2000);
+  </script>
+</body>
+</html>

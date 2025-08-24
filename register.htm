@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <title>Мини-Телеграм</title>
+  <style>
+    body { font-family: Arial; background: #f0f2f5; margin: 0; padding: 20px; }
+    input, button { margin: 5px; padding: 5px; }
+    #chatBox { border: 1px solid #ccc; padding: 10px; height: 200px; overflow-y: auto; background: white; margin-top: 10px; }
+  </style>
+</head>
+<body>
+
+<h2>Добро пожаловать, Player1</h2>
+
+<!-- Поиск и добавление -->
+<input id="searchNick" placeholder="Никнейм">
+<button onclick="sendFriendRequest()">Найти друга</button>
+
+<h3>Запросы в друзья:</h3>
+<div id="requests"></div>
+
+<h3>Мои друзья:</h3>
+<ul id="friendsList"></ul>
+
+<!-- Чат -->
+<div id="chatSection" style="display:none;">
+  <h3>Чат с <span id="chatWith"></span></h3>
+  <div id="chatBox"></div>
+  <input id="chatInput" placeholder="Сообщение">
+  <button onclick="sendMessage()">Отправить</button>
+</div>
+
+<script>
+  let currentUser = "Player1"; // залогинен сейчас Player1
+  let users = JSON.parse(localStorage.getItem("users")) || {};
+
+  if (!users[currentUser]) {
+    users[currentUser] = { friends: [], requests: [], messages: {} };
+  }
+
+  function saveUsers() {
+    localStorage.setItem("users", JSON.stringify(users));
+  }
+
+  // Отправка запроса
+  function sendFriendRequest() {
+    let nick = document.getElementById("searchNick").value.trim();
+    if (!nick || nick === currentUser) return alert("Некорректный ник!");
+
+    if (!users[nick]) {
+      users[nick] = { friends: [], requests: [], messages: {} };
+    }
+    if (!users[nick].requests.includes(currentUser) && !users[nick].friends.includes(currentUser)) {
+      users[nick].requests.push(currentUser);
+      alert("Запрос отправлен " + nick);
+    }
+    saveUsers();
+  }
+
+  // Показ запросов
+  function showRequests() {
+    let requestsDiv = document.getElementById("requests");
+    requestsDiv.innerHTML = "";
+    users[currentUser].requests.forEach(nick => {
+      let div = document.createElement("div");
+      div.textContent = "Запрос от " + nick + " ";
+      let acceptBtn = document.createElement("button");
+      acceptBtn.textContent = "Принять";
+      acceptBtn.onclick = () => acceptRequest(nick);
+      div.appendChild(acceptBtn);
+      requestsDiv.appendChild(div);
+    });
+  }
+
+  // Принять друга
+  function acceptRequest(nick) {
+    users[currentUser].friends.push(nick);
+    users[nick].friends.push(currentUser);
+
+    // добавляем пустой чат
+    users[currentUser].messages[nick] = [];
+    users[nick].messages[currentUser] = [];
+
+    users[currentUser].requests = users[currentUser].requests.filter(r => r !== nick);
+    saveUsers();
+    showFriends();
+    showRequests();
+  }
+
+  // Показ друзей
+  function showFriends() {
+    let list = document.getElementById("friendsList");
+    list.innerHTML = "";
+    users[currentUser].friends.forEach(friend => {
+      let li = document.createElement("li");
+      let btn = document.createElement("button");
+      btn.textContent = "Чат с " + friend;
+      btn.onclick = () => openChat(friend);
+      li.appendChild(btn);
+      list.appendChild(li);
+    });
+  }
+
+  // Чат
+  let currentChatFriend = null;
+
+  function openChat(friend) {
+    currentChatFriend = friend;
+    document.getElementById("chatSection").style.display = "block";
+    document.getElementById("chatWith").textContent = friend;
+    showMessages();
+  }
+
+  function showMessages() {
+    let box = document.getElementById("chatBox");
+    box.innerHTML = "";
+    users[currentUser].messages[currentChatFriend].forEach(msg => {
+      let div = document.createElement("div");
+      div.textContent = msg.from + ": " + msg.text;
+      box.appendChild(div);
+    });
+  }
+
+  function sendMessage() {
+    let input = document.getElementById("chatInput");
+    let text = input.value.trim();
+    if (!text) return;
+
+    users[currentUser].messages[currentChatFriend].push({ from: currentUser, text });
+    users[currentChatFriend].messages[currentUser].push({ from: currentUser, text });
+
+    input.value = "";
+    saveUsers();
+    showMessages();
+  }
+
+  // При загрузке
+  showFriends();
+  showRequests();
+</script>
+
+</body>
+</html>
